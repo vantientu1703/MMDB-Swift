@@ -19,19 +19,39 @@ public struct MMDBCountry: CustomStringConvertible {
     public var names = [String: String]()
 
     init(dictionary: NSDictionary) {
-        if let dict = dictionary["continent"] as? NSDictionary,
-            let code = dict["code"] as? String,
-            let continentNames = dict["names"] as? [String: String]
-        {
-            continent.code = code
-            continent.names = continentNames
+        if #available(macOSApplicationExtension 10.10, *) {
+            if let dict = dictionary["continent"] as? NSDictionary,
+               let code = dict["code"] as? String,
+               let continentNames = dict["names"] as? [String: String]
+            {
+                continent.code = code
+                continent.names = continentNames
+            }
+        } else {
+            if let dict = dictionary.object(forKey: "continent") as? NSDictionary,
+               let code = dict.object(forKey: "code") as? String,
+               let continentNames = dict.object(forKey: "names") as? [String: String]
+            {
+                continent.code = code
+                continent.names = continentNames
+            }
         }
-        if let dict = dictionary["country"] as? NSDictionary,
-            let iso = dict["iso_code"] as? String,
-            let countryNames = dict["names"] as? [String: String]
-        {
-            self.isoCode = iso
-            self.names = countryNames
+        if #available(macOSApplicationExtension 10.10, *) {
+            if let dict = dictionary["country"] as? NSDictionary,
+               let iso = dict["iso_code"] as? String,
+               let countryNames = dict["names"] as? [String: String]
+            {
+                self.isoCode = iso
+                self.names = countryNames
+            }
+        } else {
+            if let dict = dictionary.object(forKey: "country") as? NSDictionary,
+               let iso = dict.object(forKey: "iso_code") as? String,
+               let countryNames = dict.object(forKey: "names") as? [String: String]
+            {
+                self.isoCode = iso
+                self.names = countryNames
+            }
         }
     }
     
@@ -158,7 +178,11 @@ final public class MMDB {
                 let sub = dump(list: list)
                 list = sub.ptr
                 if let out = sub.out, key.count > 0 {
-                    dict[key] = out
+                    if #available(macOSApplicationExtension 10.10, *) {
+                        dict[key] = out
+                    } else {
+                        dict.setValue(out, forKey: key) 
+                    }
                 } else {
                     break
                 }
@@ -172,7 +196,13 @@ final public class MMDB {
             return (ptr: list, out: str)
             
         case MMDB_DATA_TYPE_UINT32:
-            var res: NSNumber = 0
+            var res: NSNumber
+            if #available(macOSApplicationExtension 10.10, *) {
+                res = 0
+            } else {
+                // Fallback on earlier versions
+                res = NSNumber(value: 0)
+            }
             if let entryData = list?.pointee.entry_data {
                 var mutableEntryData = entryData
                 if let uint = MMDB_get_entry_data_uint32(&mutableEntryData) {
